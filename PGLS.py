@@ -25,7 +25,6 @@ transformed data{
 
 	Ndiv <- N;
 	Ident <- diag_matrix(rep_vector(1, N));
-
 }
 parameters{
 	real<lower=0> sigma;
@@ -35,27 +34,25 @@ parameters{
 transformed parameters{
 }
 model{
-	matrix[N,N] lambda_placeholder;
-	matrix[N, N] V_lambda;
-	matrix[N, N] V_sig;
-
+	matrix[N,N] Vlambda;
+	matrix[N,N] Vsigma;
 	vector[N] yhat;
-	real constant;
 	real detV;
 	real cdf;
 	real logLike_PGLS;
 
-	lambda_placeholder <- lambda * Lmat;
-	V_lambda <- (lambda_placeholder + Ident) .* V;
-	V_sig <- sigma^2*V_lambda;
+	Vlambda <- (lambda*Lmat + Ident) .* V;
+	Vsigma <- sigma^2*Vlambda;
 
 	yhat <- B[1] + B[2]*X;
 
-	detV <- log_determinant(V_sig);
-	cdf <- ((y-yhat)'*inverse_spd(V_sig)*(y-yhat));
 
-	logLike_PGLS <-  -0.5*(detV + cdf);
-	increment_log_prob(logLike_PGLS);
+	//detV <- log_determinant(Vsigma);
+	//cdf <- ((y-yhat)'*inverse(Vsigma)*(y-yhat));
+	//logLike_PGLS <-  -0.5*(detV + cdf);
+	//increment_log_prob(logLike_PGLS);
+	
+	y ~ multi_normal(yhat, Vsigma);
 	
 	B ~ normal(0, 1);
 	sigma ~ cauchy(0, 2.5);
@@ -71,9 +68,7 @@ X = np.vstack((np.ones(len(shorebirdTraits)), stdX))
 # y = np.log(shorebirdTraits['Egg.Mass'])
 
 data = {'N': len(shorebirdTraits), 'X': stdX,'K': 1, 'V': shorebirdVCV, 'Lmat': Lmat, 'y': stdY}
-fit = compMod.sampling(data, iter=100)
+fit = compMod.sampling(data, iter=5000)
 fit.plot(['B', 'sigma', 'lambda'])
 plt.show()
-
-# B = pd.DataFrame(fit.extract('B')['B'])
 
